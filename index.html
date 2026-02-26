@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>🎓 Тапалка — Люблю Колледж!</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        :root {
+            --bg-primary: #0f0c29;
+            --bg-secondary: #302b63;
+            --bg-accent: #24243e;
+            --gold: #ffd700;
+            --gold-dark: #b8960f;
+            --gold-glow: rgba(255, 215, 0, 0.4);
+            --text: #f0e6ff;
+            --text-dim: #a09cb5;
+            --purple: #9b59b6;
+            --pink: #e91e63;
+            --cyan: #00bcd4;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: linear-gradient(135deg, var(--bg-primary), var(--bg-secondary), var(--bg-accent));
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* ── Анимированный фон ── */
+        .bg-particles {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .bg-particles .particle {
+            position: absolute;
+            width: 4px; height: 4px;
+            background: var(--gold);
+            border-radius: 50%;
+            opacity: 0.3;
+            animation: float-particle linear infinite;
+        }
+
+        @keyframes float-particle {
+            0% { transform: translateY(100vh) scale(0); opacity: 0; }
+            10% { opacity: 0.3; }
+            90% { opacity: 0.3; }
+            100% { transform: translateY(-10vh) scale(1); opacity: 0; }
+        }
+
+        /* ── Заголовок ── */
+        .header {
+            z-index: 10;
+            text-align: center;
+            padding: 30px 20px 10px;
+        }
+
+        .header h1 {
+            font-size: 1.8rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--gold), #fff8dc, var(--gold));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: none;
+            letter-spacing: 1px;
+        }
+
+        .header p {
+            font-size: 0.95rem;
+            color: var(--text-dim);
+            margin-top: 6px;
+        }
+
+        /* ── Счётчик ── */
+        .score-container {
+            z-index: 10;
+            margin: 15px 0;
+            text-align: center;
+        }
+
+        .score {
+            font-size: 3.5rem;
+            font-weight: 800;
+            color: var(--gold);
+            text-shadow: 0 0 30px var(--gold-glow);
+            transition: transform 0.1s ease;
+        }
+
+        .score.bump {
+            transform: scale(1.15);
+        }
+
+        .score-label {
+            font-size: 0.85rem;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 3px;
+        }
+
+        /* ── Монетка ── */
+        .coin-area {
+            z-index: 10;
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            width: 100%;
+        }
+
+        .coin {
+            width: 200px;
+            height: 200px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 35% 35%, #ffe066, var(--gold), var(--gold-dark));
+            box-shadow:
+                0 0 40px var(--gold-glow),
+                0 0 80px rgba(255, 215, 0, 0.2),
+                inset 0 -5px 15px rgba(0,0,0,0.3),
+                inset 0 5px 15px rgba(255,255,255,0.3);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+            transition: transform 0.1s ease, box-shadow 0.1s ease;
+            position: relative;
+            animation: coin-idle 3s ease-in-out infinite;
+        }
+
+        .coin:active {
+            transform: scale(0.92);
+            box-shadow:
+                0 0 20px var(--gold-glow),
+                0 0 40px rgba(255, 215, 0, 0.15),
+                inset 0 -3px 10px rgba(0,0,0,0.4),
+                inset 0 3px 10px rgba(255,255,255,0.2);
+        }
+
+        @keyframes coin-idle {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-8px); }
+        }
+
+        .coin-inner {
+            font-size: 2.2rem;
+            font-weight: 800;
+            color: var(--bg-primary);
+            text-align: center;
+            line-height: 1.2;
+            text-shadow: 0 1px 2px rgba(255,255,255,0.3);
+        }
+
+        /* ── Шарик-монетка (летит вверх от тапа) ── */
+        .coin-ring {
+            position: absolute;
+            width: 200px;
+            height: 200px;
+            border-radius: 50%;
+            border: 3px solid var(--gold);
+            opacity: 0;
+            pointer-events: none;
+            z-index: 5;
+        }
+
+        .coin-ring.active {
+            animation: ring-expand 0.6s ease-out forwards;
+        }
+
+        @keyframes ring-expand {
+            0% { transform: scale(1); opacity: 0.6; }
+            100% { transform: scale(2); opacity: 0; }
+        }
+
+        /* ── Вылетающие слова ── */
+        .flying-word {
+            position: fixed;
+            font-weight: 600;
+            pointer-events: none;
+            z-index: 100;
+            white-space: nowrap;
+            animation: fly-up 1.8s ease-out forwards;
+            text-shadow: 0 0 10px currentColor;
+        }
+
+        @keyframes fly-up {
+            0% {
+                opacity: 1;
+                transform: translateY(0) scale(1) rotate(0deg);
+            }
+            50% {
+                opacity: 1;
+            }
+            100% {
+                opacity: 0;
+                transform: translateY(-200px) scale(0.5) rotate(var(--rotate));
+            }
+        }
+
+        /* ── Комбо ── */
+        .combo {
+            z-index: 10;
+            text-align: center;
+            padding: 10px;
+            min-height: 50px;
+        }
+
+        .combo-text {
+            font-size: 1.3rem;
+            font-weight: 600;
+            background: linear-gradient(90deg, var(--pink), var(--purple), var(--cyan));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: combo-pulse 0.5s ease;
+        }
+
+        @keyframes combo-pulse {
+            0% { transform: scale(0.5); opacity: 0; }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        /* ── +1 анимация ── */
+        .plus-one {
+            position: fixed;
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: var(--gold);
+            pointer-events: none;
+            z-index: 100;
+            animation: plus-float 0.8s ease-out forwards;
+            text-shadow: 0 0 10px var(--gold-glow);
+        }
+
+        @keyframes plus-float {
+            0% { opacity: 1; transform: translateY(0) scale(1); }
+            100% { opacity: 0; transform: translateY(-80px) scale(1.5); }
+        }
+
+        /* ── Нижняя панель ── */
+        .bottom-bar {
+            z-index: 10;
+            width: 100%;
+            padding: 15px 20px 30px;
+            text-align: center;
+        }
+
+        .stats {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 1.4rem;
+            font-weight: 800;
+            color: var(--gold);
+        }
+
+        .stat-label {
+            font-size: 0.7rem;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        /* ── Эффект ряби ── */
+        .ripple {
+            position: fixed;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(255,215,0,0.4), transparent);
+            pointer-events: none;
+            z-index: 99;
+            animation: ripple-anim 0.6s ease-out forwards;
+        }
+
+        @keyframes ripple-anim {
+            0% { transform: scale(1); opacity: 1; }
+            100% { transform: scale(8); opacity: 0; }
+        }
+
+        /* ── Разблокировки ── */
+        .unlock-toast {
+            position: fixed;
+            top: 60px;
+            left: 50%;
+            transform: translateX(-50%) translateY(-100px);
+            background: linear-gradient(135deg, var(--purple), var(--pink));
+            color: white;
+            padding: 12px 24px;
+            border-radius: 16px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            z-index: 200;
+            opacity: 0;
+            animation: toast-in 2.5s ease forwards;
+            box-shadow: 0 8px 30px rgba(155, 89, 182, 0.5);
+            text-align: center;
+            max-width: 90%;
+        }
+
+        @keyframes toast-in {
+            0% { transform: translateX(-50%) translateY(-100px); opacity: 0; }
+            15% { transform: translateX(-50%) translateY(0); opacity: 1; }
+            85% { transform: translateX(-50%) translateY(0); opacity: 1; }
+            100% { transform: translateX(-50%) translateY(-100px); opacity: 0; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Фоновые частицы -->
+    <div class="bg-particles" id="particles"></div>
+
+    <!-- Заголовок -->
+    <div class="header">
+        <h1>🎓 ЛЮБЛЮ КОЛЛЕДЖ!</h1>
+        <p>Тапай по монетке и собирай фразы!</p>
+    </div>
+
+    <!-- Счётчик -->
+    <div class="score-container">
+        <div class="score" id="score">0</div>
+        <div class="score-label">тапов</div>
+    </div>
+
+    <!-- Комбо -->
+    <div class="combo" id="combo-container"></div>
+
+    <!-- Монетка -->
+    <div class="coin-area">
+        <div class="coin" id="coin">
+            <div class="coin-inner">🎓</div>
+        </div>
+    </div>
+
+    <!-- Нижняя панель -->
+    <div class="bottom-bar">
+        <div class="stats">
+            <div class="stat-item">
+                <div class="stat-value" id="stat-best">0</div>
+                <div class="stat-label">Лучший комбо</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="stat-phrases">0</div>
+                <div class="stat-label">Фразы</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ─── Telegram Web App ────────────────────────────────────────────
+        const tg = window.Telegram?.WebApp;
+        if (tg) {
+            tg.ready();
+            tg.expand();
+        }
+
+        // ─── Фразы ─────────────────────────────────────────────────────
+        const PHRASES = [
+            "Люблю учиться! 📚",
+            "Колледж — сила! 💪",
+            "Знания — мощь! 🧠",
+            "Диплом близко! 🎓",
+            "Сдал сессию! 🎉",
+            "Лучшая группа! 🏆",
+            "Пятёрка! ⭐",
+            "Я молодец! 🌟",
+            "Учёба — кайф! 🔥",
+            "Конспект готов! 📝",
+            "Зачёт — есть! ✅",
+            "Препод доволен! 😊",
+            "Курсовая сдана! 📄",
+            "Практика — топ! 🚀",
+            "Стипендия! 💰",
+            "Красный диплом! 🏅",
+            "Друзья рядом! 🤝",
+            "Контрольная — 5! 💯",
+            "Экзамен сдан! 🎊",
+            "Каникулы скоро! ☀️",
+            "Лабораторная — ок! 🧪",
+            "Физра — зачёт! 🏃",
+            "Столовка — вкусно! 🍕",
+            "Перемена! ⏰",
+            "Умный я! 🤓",
+        ];
+
+        const COMBO_MESSAGES = {
+            5:  "🔥 Комбо x5!",
+            10: "⚡ Комбо x10!",
+            15: "💥 МЕГА комбо x15!",
+            20: "🌟 УЛЬТРА x20!",
+            25: "🚀 БЕЗУМИЕ x25!",
+            50: "🏆 ЛЕГЕНДА x50!",
+            100: "👑 БОГ ТАПА x100!",
+        };
+
+        const UNLOCKS = {
+            10:  "🎉 Разблокирован: Начинающий студент!",
+            25:  "📚 Разблокирован: Хорошист!",
+            50:  "⭐ Разблокирован: Отличник!",
+            100: "🏆 Разблокирован: Староста!",
+            200: "🎓 Разблокирован: Выпускник!",
+            500: "👑 Разблокирован: Ректор!",
+        };
+
+        const COLORS = [
+            "#ffd700", "#ff6b6b", "#48dbfb", "#ff9ff3",
+            "#54a0ff", "#5f27cd", "#01a3a4", "#f368e0",
+            "#ff9f43", "#00d2d3", "#ee5a24", "#c8d6e5",
+        ];
+
+        // ─── Состояние ─────────────────────────────────────────────────
+        let score = 0;
+        let combo = 0;
+        let bestCombo = 0;
+        let phrasesShown = 0;
+        let comboTimer = null;
+        let lastPhraseIdx = -1;
+
+        const scoreEl = document.getElementById("score");
+        const coinEl = document.getElementById("coin");
+        const comboContainer = document.getElementById("combo-container");
+        const statBest = document.getElementById("stat-best");
+        const statPhrases = document.getElementById("stat-phrases");
+
+        // ─── Фоновые частицы ────────────────────────────────────────────
+        (function createParticles() {
+            const container = document.getElementById("particles");
+            for (let i = 0; i < 30; i++) {
+                const p = document.createElement("div");
+                p.className = "particle";
+                p.style.left = Math.random() * 100 + "%";
+                p.style.animationDuration = (4 + Math.random() * 6) + "s";
+                p.style.animationDelay = Math.random() * 5 + "s";
+                p.style.width = p.style.height = (2 + Math.random() * 4) + "px";
+                container.appendChild(p);
+            }
+        })();
+
+        // ─── Случайная фраза (без повтора подряд) ──────────────────────
+        function getRandomPhrase() {
+            let idx;
+            do {
+                idx = Math.floor(Math.random() * PHRASES.length);
+            } while (idx === lastPhraseIdx && PHRASES.length > 1);
+            lastPhraseIdx = idx;
+            return PHRASES[idx];
+        }
+
+        // ─── Вылетающее слово ──────────────────────────────────────────
+        function spawnFlyingWord(x, y) {
+            const phrase = getRandomPhrase();
+            phrasesShown++;
+            statPhrases.textContent = phrasesShown;
+
+            const el = document.createElement("div");
+            el.className = "flying-word";
+            el.textContent = phrase;
+            el.style.left = (x + (Math.random() - 0.5) * 120) + "px";
+            el.style.top = y + "px";
+            el.style.fontSize = (0.9 + Math.random() * 0.6) + "rem";
+            el.style.color = COLORS[Math.floor(Math.random() * COLORS.length)];
+            el.style.setProperty("--rotate", (Math.random() - 0.5) * 30 + "deg");
+
+            document.body.appendChild(el);
+            setTimeout(() => el.remove(), 1800);
+        }
+
+        // ─── +1 анимация ──────────────────────────────────────────────
+        function spawnPlusOne(x, y) {
+            const el = document.createElement("div");
+            el.className = "plus-one";
+            el.textContent = combo > 1 ? `+${combo}` : "+1";
+            el.style.left = x + "px";
+            el.style.top = (y - 30) + "px";
+
+            document.body.appendChild(el);
+            setTimeout(() => el.remove(), 800);
+        }
+
+        // ─── Рябь при тапе ────────────────────────────────────────────
+        function spawnRipple(x, y) {
+            const el = document.createElement("div");
+            el.className = "ripple";
+            el.style.left = (x - 10) + "px";
+            el.style.top = (y - 10) + "px";
+
+            document.body.appendChild(el);
+            setTimeout(() => el.remove(), 600);
+        }
+
+        // ─── Кольцо от монеты ────────────────────────────────────────
+        function triggerCoinRing() {
+            const ring = document.createElement("div");
+            ring.className = "coin-ring active";
+            const rect = coinEl.getBoundingClientRect();
+            ring.style.left = rect.left + "px";
+            ring.style.top = rect.top + "px";
+            document.body.appendChild(ring);
+            setTimeout(() => ring.remove(), 600);
+        }
+
+        // ─── Тост-уведомление ──────────────────────────────────────────
+        function showToast(text) {
+            const el = document.createElement("div");
+            el.className = "unlock-toast";
+            el.textContent = text;
+            document.body.appendChild(el);
+            setTimeout(() => el.remove(), 2500);
+        }
+
+        // ─── Комбо ──────────────────────────────────────────────────────
+        function updateCombo() {
+            combo++;
+            if (combo > bestCombo) {
+                bestCombo = combo;
+                statBest.textContent = bestCombo;
+            }
+
+            // Комбо сообщение
+            if (COMBO_MESSAGES[combo]) {
+                comboContainer.innerHTML =
+                    `<div class="combo-text">${COMBO_MESSAGES[combo]}</div>`;
+            }
+
+            // Сброс таймера комбо
+            clearTimeout(comboTimer);
+            comboTimer = setTimeout(() => {
+                combo = 0;
+                comboContainer.innerHTML = "";
+            }, 1500);
+        }
+
+        // ─── Разблокировки ─────────────────────────────────────────────
+        function checkUnlocks() {
+            if (UNLOCKS[score]) {
+                showToast(UNLOCKS[score]);
+            }
+        }
+
+        // ─── Главный обработчик тапа ───────────────────────────────────
+        function handleTap(e) {
+            e.preventDefault();
+
+            const touch = e.touches ? e.touches[0] : e;
+            const x = touch.clientX;
+            const y = touch.clientY;
+
+            // Счёт
+            score++;
+            scoreEl.textContent = score;
+
+            // Анимация счётчика
+            scoreEl.classList.add("bump");
+            setTimeout(() => scoreEl.classList.remove("bump"), 100);
+
+            // Комбо
+            updateCombo();
+
+            // Эффекты
+            spawnPlusOne(x, y);
+            spawnFlyingWord(x, y);
+            spawnRipple(x, y);
+            triggerCoinRing();
+
+            // Вибрация (если поддерживается)
+            if (navigator.vibrate) navigator.vibrate(15);
+
+            // Разблокировки
+            checkUnlocks();
+
+            // Haptic feedback Telegram
+            if (tg?.HapticFeedback) {
+                tg.HapticFeedback.impactOccurred("light");
+            }
+        }
+
+        // ─── Привязка событий ──────────────────────────────────────────
+        coinEl.addEventListener("touchstart", handleTap, { passive: false });
+        coinEl.addEventListener("mousedown", handleTap);
+
+        // Предотвращаем скролл при тапе
+        document.addEventListener("touchmove", e => e.preventDefault(), { passive: false });
+    </script>
+</body>
+</html>
